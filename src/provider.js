@@ -52,7 +52,18 @@ stream.on(EventType.OrderPaid, async (event) => {
 
     const order = await client.getOrder(event.order_id);
     const negotiation = await client.getNegotiation(order.negotiationId);
-    const payload = parseRequirements(negotiation.requirements);
+    console.log("Preparing audit payload", {
+      orderId: event.order_id,
+      negotiationId: order.negotiationId,
+      requirementsLength: negotiation.requirements?.length || 0,
+      metadataLength: negotiation.metadata?.length || 0
+    });
+    const payload = parseRequirements(firstNonEmpty(
+      negotiation.requirements,
+      negotiation.metadata,
+      order.requirements,
+      order.metadata
+    ));
     const audit = await auditOutput(payload);
 
     const delivery = await client.deliverOrder(event.order_id, {
@@ -74,7 +85,7 @@ process.on("SIGINT", () => {
   process.exit(0);
 });
 
-function parseRequirements(requirements) {
+export function parseRequirements(requirements) {
   if (!requirements) {
     return {
       task: "Audit paid CROO agent output",
@@ -86,14 +97,7 @@ function parseRequirements(requirements) {
 
   try {
     const parsed = JSON.parse(requirements);
-    return typeof parsed === "object" && parsed !== null
-      ? parsed
-      : {
-          task: "Audit paid CROO agent output",
-          content: String(parsed),
-          claims: [],
-          sources: []
-        };
+    return normalizeParsedRequirements(parsed);
   } catch {
     return {
       task: "Audit paid CROO agent output",
@@ -102,6 +106,53 @@ function parseRequirements(requirements) {
       sources: []
     };
   }
+}
+
+function normalizeParsedRequirements(parsed) {
+  if (typeof parsed === "string") {
+    return parseRequirements(parsed);
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    return {
+      task: "Audit paid CROO agent output",
+      content: String(parsed),
+      claims: [],
+      sources: []
+    };
+  }
+
+  const nested = firstNonEmpty(
+    parsed.requirements,
+    parsed.input,
+    parsed.content,
+    parsed.prompt,
+    parsed.message,
+    parsed.text
+  );
+
+  if (
+    nested &&
+    !parsed.claims &&
+    !parsed.sources &&
+    !parsed.content &&
+    typeof nested === "string" &&
+    nested.trim().startsWith("{")
+  ) {
+    return parseRequirements(nested);
+  }
+
+  return {
+    task: parsed.task || "Audit paid CROO agent output",
+    content: parsed.content || parsed.output || parsed.report || parsed.answer || nested || "",
+    claims: Array.isArray(parsed.claims) ? parsed.claims : [],
+    sources: Array.isArray(parsed.sources) ? parsed.sources : [],
+    riskContext: parsed.riskContext || parsed.risk_context || {}
+  };
+}
+
+function firstNonEmpty(...values) {
+  return values.find((value) => typeof value === "string" && value.trim().length > 0) || "";
 }
 
 async function runSafely(label, action) {
