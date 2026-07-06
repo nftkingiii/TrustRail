@@ -1,0 +1,29 @@
+{
+  "name": "trustrail",
+  "version": "0.1.0",
+  "description": "Paid verification agent for CROO/CAP agent commerce.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "provider": "node src/provider.js",
+    "provider:smoke": "node src/provider.js --smoke-test",
+    "demo": "node src/demo/research-agent.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@croo-network/sdk": "^0.2.1"
+  },
+  "keywords": [
+    "croo",
+    "cap",
+    "agent",
+    "verification",
+    "a2a"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}
