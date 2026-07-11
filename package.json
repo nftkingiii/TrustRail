@@ -9,7 +9,8 @@
     "provider": "node src/provider.js",
     "provider:smoke": "node src/provider.js --smoke-test",
     "demo": "node src/demo/research-agent.js",
-    "test": "node --test"
+    "test": "node --test",
+    "site": "npx serve public"
   },
   "dependencies": {
     "@croo-network/sdk": "^0.2.1"
