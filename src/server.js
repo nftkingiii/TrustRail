@@ -1,6 +1,15 @@
 import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { extname, join } from "node:path";
 import { auditOutput } from "./verifier.js";
 import { getCapListing, prepareCapContext, settleCapJob } from "./cap/adapter.js";
+
+const publicDirectory = join(process.cwd(), "public");
+const publicTypes = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".jpg": "image/jpeg"
+};
 
 async function readJson(request) {
   const chunks = [];
@@ -33,6 +42,21 @@ export function createTrustRailServer() {
     }
 
     const url = new URL(request.url, "http://localhost");
+
+    if (request.method === "GET" && ["/", "/index.html", "/styles.css", "/trustrail-mark.jpg"].includes(url.pathname)) {
+      const assetName = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
+      try {
+        const asset = await readFile(join(publicDirectory, assetName));
+        response.writeHead(200, {
+          "content-type": publicTypes[extname(assetName)] || "application/octet-stream",
+          "cache-control": assetName === "index.html" ? "no-cache" : "public, max-age=31536000, immutable"
+        });
+        response.end(asset);
+      } catch {
+        sendJson(response, 404, { error: "site_asset_not_found" });
+      }
+      return;
+    }
 
     if (request.method === "GET" && url.pathname === "/health") {
       sendJson(response, 200, {
