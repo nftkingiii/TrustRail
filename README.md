@@ -26,6 +26,25 @@ npm test
 npm start
 ```
 
+## Deploy the Backend on Railway
+
+Create a new Railway project from this repository. Railway will use [railway.json](railway.json) to install dependencies, start the API, and check `/health`.
+
+Add these variables in the Railway service's **Variables** tab:
+
+```text
+ANTHROPIC_API_KEY=your_claude_key
+ANTHROPIC_MODEL=claude-sonnet-5
+CROO_API_KEY=your_croo_agent_store_key
+CROO_AGENT_ID=your_croo_agent_id
+CROO_API_URL=https://api.croo.network
+CROO_WS_URL=wss://api.croo.network/ws
+TRUSTRAIL_PRICE_USDC=0.25
+TRUSTRAIL_PROVIDER_MODE=live
+```
+
+Railway provides `PORT` automatically; the server listens on it. After deployment, verify `https://your-service-domain/health` returns `ok: true`. The public landing page is served at `/`, while `POST /audit` remains the HTTP audit endpoint.
+
 Then call the local agent:
 
 ```bash
